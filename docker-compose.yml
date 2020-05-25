@@ -1,0 +1,57 @@
+version: "3"
+services:
+  client:
+    build:
+      context: .
+      dockerfile: docker/client/Dockerfile
+    expose:
+      - 8080
+    ports:
+      - "80:8080"
+    working_dir: /home/node/app
+    volumes:
+      - ./client:/home/node/app
+    command: ["npm", "run", "start"]
+    env_file:
+      - .env
+    links:
+      - api
+    networks:
+      - webappnetwork
+  api:
+    tty: true # Enables debugging capabilities when attached to this container.
+    image: 'bitnami/express:4'
+    command: npm start
+    env_file:
+      - .env
+    environment:
+      - PORT=8080
+      - NODE_ENV=development
+      - DATABASE_URL=mongodb://mongodb:27017/myapp
+
+      - SKIP_DB_WAIT=0
+      - SKIP_DB_MIGRATION=0
+      - SKIP_NPM_INSTALL=0
+      - SKIP_BOWER_INSTALL=0
+    depends_on:
+      - mongodb
+    ports:
+      - 8080:8080
+    volumes:
+      - ./api:/app
+    networks:
+      - webappnetwork
+  mongodb:
+    image: mongo
+    restart: always
+    container_name: mongodb
+    volumes:
+      - ./docker/db:/data/db
+    ports:
+      - 27017:27017
+    command: mongod --noauth
+    networks:
+      - webappnetwork
+networks:
+  webappnetwork:
+    driver: bridge
